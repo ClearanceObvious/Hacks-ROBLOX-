@@ -29,7 +29,7 @@ end
 --Boot
 local lib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
 local hwnd = lib:MakeWindow {
-    Name = 'Enviroment v1.3b', --1.3 beta
+    Name = 'Enviroment v1.7b', --1.7 beta
     HidePremium = false,
     SaveConfig = false,
     ConfigFolder = ''
@@ -44,13 +44,40 @@ _G.MOutput = 'Output'
 
 _G.OutputType = debug.getconstants
 _G.CurrentFunction = nil
+_G.CurrentFunctionIndex = 1
 _G.LOutput = 'Output'
 
 _G.IOutput = 'Output'
 _G.InputType = debug.setconstant
-_G.CurrentFunctionOUT = nil
+_G.CurrentFunctionIN = nil
+_G.CurrentFunctionINIndex = 1
 _G.INDEX = 1
 _G.VALUE = ''
+
+_G.ACTION = 'Input'
+_G.COutput = 'Output'
+_G.COMPILEOUTPUT = ''
+_G.BASECOMPILE = 
+[[local syn_f = is_synapse_function
+function search_funcs(scrpt, tabl)
+    local fvx = {}
+    for i, v in pairs(tabl) do
+        if (type(v) == 'function') and not syn_f(v) then
+            if tostring(getfenv(v).script) == tostring(scrpt) then
+                fvx[#fvx+1] = v
+            end
+        end
+    end
+    return fvx
+end
+function search_env(func, env_func, output_)
+    if output_ then
+        for i, v in pairs(env_func(func)) do
+            print(i, ':', v)
+        end
+    end
+    return env_func(func)
+end]]
 
 
 --Main tab
@@ -141,6 +168,7 @@ local _functions = tab_output:AddDropdown {
         for i, v in pairs((_G.SCRIPT)) do
             if i == val then
                 _G.CurrentFunction = v
+                _G.CurrentFunctionIndex = tonumber(i)
                 break
             end
         end
@@ -194,7 +222,8 @@ local out_functions = tab_input:AddDropdown {
     Callback = function(val)
         for i, v in pairs((_G.SCRIPT)) do
             if i == val then
-                _G.CurrentFunctionOUT = v
+                _G.CurrentFunctionIN = v
+                _G.CurrentFunctionINIndex = i
                 break
             end
         end
@@ -213,7 +242,7 @@ tab_input:AddButton {
     Callback = function()
         pcall(function()
             out_functions:Refresh(get_keys(_G.SCRIPT), true)
-            to_change:Refresh(get_keys(search_env(_G.CurrentFunctionOUT, _G.OutputType, false)), true)
+            to_change:Refresh(get_keys(search_env(_G.CurrentFunctionIN, _G.OutputType, false)), true)
         end)
     end
 }
@@ -231,20 +260,78 @@ tab_input:AddButton {
     Callback = function()
         if _G.CurrentFunction then
             if _G.InputType == debug.setconstant then
-                if tostring(type(debug.getconstant(_G.CurrentFunctionOUT, _G.INDEX))) == 'number' then
+                if tostring(type(debug.getconstant(_G.CurrentFunctionIN, _G.INDEX))) == 'number' then
                     _G.VALUE = tonumber(_G.VALUE)
                 end
             end
             if _G.InputType == debug.setupvalue then
-                if tostring(type(debug.getupvalue(_G.CurrentFunctionOUT, _G.INDEX))) == 'number' then
+                if tostring(type(debug.getupvalue(_G.CurrentFunctionIN, _G.INDEX))) == 'number' then
                     _G.VALUE = tonumber(_G.VALUE)
                 end
             end
-            _G.InputType(_G.CurrentFunctionOUT, _G.INDEX, _G.VALUE)
+            _G.InputType(_G.CurrentFunctionIN, _G.INDEX, _G.VALUE)
             _G.IOutput = 'Successfully Changed'
         else
             _G.IOutput = 'No Script Available'
         end
         _ioutput:Set(_G.IOutput)
+    end
+}
+
+
+--Compile Tab
+local tab_compile = hwnd:MakeTab {
+    Name = 'Compiler',
+    Icon = '',
+    PremiumOnly = false
+}
+tab_compile:AddDropdown {
+    Name = 'Action',
+    Default = 'Input',
+    Options = {'Input', 'Output'},
+    Callback = function(val)
+        _G.ACTION = val
+    end
+}
+local _coutput = tab_compile:AddLabel(_G.COutput)
+tab_compile:AddButton {
+    Name = 'Compile',
+    Callback = function()
+        if _G.ACTION == 'Output' then
+            if _G.TargetScript and _G.CurrentFunction then
+                _G.COMPILEOUTPUT = _G.BASECOMPILE .. '\n\n' .. tostring(_G.TargetScript) .. '\n' .. 
+                'local func = search_funcs(a, getreg())\n' ..
+                'print("--- CONSTANTS ---")\n' .. 'for i, v in pairs(search_env(func[' .. tostring(_G.CurrentFunctionIndex) .. '], debug.getconstants, false)) do\n' ..
+                '   print(i .. " : " .. tostring(v))\nend\n' ..
+                'print("--- UPVALUES ---")\n' .. 'for i, v in pairs(search_env(func[' .. tostring(_G.CurrentFunctionIndex) .. '], debug.getupvalues, false)) do\n' ..
+                '   print(i .. " : " .. tostring(v))\nend\n'
+                
+                
+                _G.COutput = 'Compilation Success [Copied to Clipboard]'
+                setclipboard(_G.COMPILEOUTPUT)
+            else
+                _G.COutput = 'Error Loading'
+            end
+        elseif _G.ACTION == 'Input' then
+            if _G.TargetScript and _G.CurrentFunctionIN then
+                _G.COMPILEOUTPUT = _G.BASECOMPILE .. '\n\n' .. tostring(_G.TargetScript) .. '\n' ..
+                'local func = search_funcs(a, getreg())\n'
+                if _G.InputType == debug.setconstant then
+                   _G.COMPILEOUTPUT = _G.COMPILEOUTPUT .. 'debug.setconstant(func[' .. tostring(_G.CurrentFunctionINIndex) .. '], ' .. tostring(_G.INDEX) .. ', ' .. tostring(_G.VALUE) .. ')\n' ..
+                   '\n\n--Printing new value to the screen\n' ..
+                   'print(debug.getconstant(func[' .. tostring(_G.CurrentFunctionINIndex) .. '], ' .. _G.INDEX .. '))\n'
+                elseif _G.InputType == debug.setupvalue then
+                    _G.COMPILEOUTPUT = _G.COMPILEOUTPUT .. 'debug.setupvalue(func[' .. tostring(_G.CurrentFunctionINIndex) .. '], ' .. tostring(_G.INDEX) .. ', ' .. tostring(_G.VALUE) .. '))\n' ..
+                   '\n\n--Printing new value to the screen\n' ..
+                   'print(debug.getupvalue(func[' .. tostring(_G.CurrentFunctionINIndex) .. '], ' .. _G.INDEX .. '))\n'
+                end
+                
+                _G.COutput = 'Compilation Success [Copied to Clipboard]'
+                setclipboard(_G.COMPILEOUTPUT)
+            else
+                _G.COutput = 'Error Loading'
+            end
+        end
+        _coutput:Set(_G.COutput)
     end
 }
