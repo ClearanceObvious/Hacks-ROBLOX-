@@ -1,3 +1,5 @@
+--NOTE: THIS SCRIPT ONLY WORKS AS EXPECTED WITH NUMBERS. WE WILL MAKE UPDATES FOR MULTIPLE TYPE-SUPPORT.
+
 local syn_f = is_synapse_function
 function search_funcs(scrpt, tabl)
     local fvx = {}
