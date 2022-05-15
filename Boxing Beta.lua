@@ -28,6 +28,8 @@ local player = game.Players.LocalPlayer
 local hum = player.Character.Humanoid
 hum.UseJumpPower = true
 
+local shieldButton = game:GetService("Players").Pikinkuinku.PlayerGui.LeftButtons.MainContainer.ShieldButton.button
+
 local base = {
     wk = hum.WalkSpeed,
     jp = hum.JumpPower
@@ -60,6 +62,11 @@ old2 = hookmetamethod(hum, '__newindex', newcclosure(function(slf, prop, val)
     
     return old2(slf, prop, val)
 end))
+
+hookfunction(
+    debug.getupvalue(getconnections(shieldButton.Activated[1].Function), 3),
+    function() return end
+)
 
 
 --Functions     [S Synapse / Utlity ; U User Interface]
