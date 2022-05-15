@@ -64,7 +64,7 @@ old2 = hookmetamethod(hum, '__newindex', newcclosure(function(slf, prop, val)
 end))
 
 hookfunction(
-    debug.getupvalue(getconnections(shieldButton.Activated[1].Function), 3),
+    debug.getupvalue(getconnections(shieldButton.Activated[1]).Function, 3),
     function() return end
 )
 
