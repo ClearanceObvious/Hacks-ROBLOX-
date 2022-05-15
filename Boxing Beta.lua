@@ -77,6 +77,10 @@ function USliderJP(val)
     hum.JumpPower = val
 end
 
+function UTogglePVP()
+    getconnections(shieldButton.Activated)[1]:Fire()
+end
+
 
 --Main Thread
 task.spawn(function()
@@ -98,8 +102,8 @@ OrionLib:MakeNotification {
 local tLocal = hwnd:MakeTab {
     Name = 'Local'
 }
-local tPlayer = hwnd:MakeTab {
-    Name = 'Player'
+local tPVP = hwnd:MakeTab {
+    Name = 'PVP'
 }
 
 
@@ -126,4 +130,8 @@ tLocal:AddSlider {
 }
 
 
---Player Tab
+--PVP Tab
+tPVP:AddButton {
+    Name = 'Toggle',
+    Callback = UTogglePVP
+}
